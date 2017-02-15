@@ -1,0 +1,209 @@
+---
+title: "Numbers Needed for Change"
+author: "Stefan Gruijters & Gjalt-Jorn Ygram Peters"
+date: "14 February 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE);
+
+nnc <- function(d = NULL, cer = NULL, t = NULL, prevent = TRUE, r = 1,
+                d.ci = NULL, cer.ci = NULL, r.ci=NULL,
+                d.n = NULL, cer.n = NULL, r.n = NULL, silent=FALSE) {
+
+  if (is.null(d) && is.null(t)) {
+    stop("You have to provide an estimate for Cohen's d (argument 'd') or an ",
+         "estimate for Student's t (argument 't').");
+  }
+  
+  if (is.null(cer)) {
+    if (!silent) {
+      warning("You did not specify a Control Event Rate (CER, argument 'cer'). I will use ",
+              "Kraemer & Kupfer's approach.");
+    }
+  }
+  
+  ### Compute confidence intervals from 
+  if (is.null(d.ci) && !is.null(d.n)) {
+    d.ci <- cohensdCI(d=d, n = sum(n.d));
+  }
+  
+  if (is.null(cer.ci) && !is.null(cer.n)) {
+    cer.ci <- prop.test(cer*cer.n, cer.n)$conf.int[1:2]
+  }
+  
+  ### Only apply single correction if we only have one confidence interval
+  if (!is.null(d.ci) && is.null(cer.ci)) {
+    cer.ci <- rep(cer, 2);
+  }
+  
+  if (is.null(d.ci) && !is.null(cer.ci)) {
+    d.ci <- rep(d, 2);
+  }
+  
+  
+
+}
+
+convert.d.to.nnc <- function(d, cer, r = 1, eventDesirable=TRUE) {
+  
+  ### Based on http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0019070
+  ### Consistent with http://rpsychologist.com/d3/cohend/
+  
+  d <- convert.r.to.d(convert.d.to.r(d) * r);
+
+  if (is.null(cer)) {
+    if (eventDesirable) {
+      return(1 / (2 * pnorm(d / sqrt(2)) - 1));
+    } else {
+      cat0("Not implemented yet!");
+    }
+  } else {
+    if (eventDesirable) {
+      return(1 / (convert.d.to.eer(d, cer, eventDesirable=TRUE) - cer));
+    } else {
+      cat0("Warning: this is experimental and may not always work!\n");
+      return(1 / (convert.d.to.eer(d, cer, eventDesirable=FALSE) - cer));
+    }
+  }
+}
+
+convert.d.to.eer <- function(d, cer, eventDesirable=TRUE) {
+  if (eventDesirable) {
+    return(pnorm((d + qnorm(cer))));
+  } else {
+    res <- pnorm((d - qnorm(cer)));
+    cat0("Warning: this is experimental and may not always work! Computed EER = ", round(res, 3), ".\n");
+    return(res);
+  }
+}
+
+######################################################################
+### Set base path
+######################################################################
+
+basePathVector <- c("B:/Data/Dropbox/Shared folder of Stefan & GJ");
+
+######################################################################
+### Set the path variables
+######################################################################
+
+### Check which paths exist and set first existing path as base path
+basePath <- basePathVector[sapply(basePathVector, dir.exists)][1];
+
+### Set other directories for importing data etc
+workingPath <- basePath;
+outputPath <- basePath;
+
+######################################################################
+### Require packages
+######################################################################
+
+require(userfriendlyscience);
+safeRequire('ggplot2');
+safeRequire('VennDiagram');
+
+######################################################################
+### Set parameters
+######################################################################
+
+d.categories <- c(.1, .2, .5, .8, 1, 2);
+d.from <- .001;
+d.to <- 1.5;
+cer <- c(.1, .2, .3, .4, .5, .6, .7, .8, .9);
+cer.from <- .00001;
+cer.to <- .99;
+
+d <- seq(from=d.from, to = d.to, by=.01);
+
+cer.continuous <- seq(cer.from, cer.to, by = .001);
+
+nnc1 <- unlist(lapply(cer, function (currentCer) {
+  return(unlist(lapply(d, convert.d.to.nnc, cer=currentCer)));
+}));
+
+nnc2 <- unlist(lapply(d.categories, function (currentD) {
+  return(unlist(lapply(cer.continuous, convert.d.to.nnc, d=currentD)));
+}));
+
+```
+
+## The effect of control event rate (base rate) on the association between Cohen's d and NNC
+
+```{r fig.width=12, fig.height=8}
+
+df1 <- data.frame(d = rep(d, length(cer)),
+                 nnc = nnc1,
+                 cer = factor(rep(cer, each=length(d))));
+
+ggplot(df1, aes(x=d, y=nnc, group=cer, color=cer)) +
+  geom_line(size=1.5) +
+  scale_color_brewer(type='qual', palette=3) +
+  scale_x_continuous(breaks=c(0, .2, .4, .6, .8, 1, 1.2, 1.4)) +
+  coord_cartesian(xlim=c(0.066, 1.4), ylim=c(2.3, 50)) +
+  xlab("Cohen's d") + ylab("Numbers Needed for Change") +
+  guides( color = guide_legend(title = "CER")) +
+  theme_bw(base_size = 22);
+
+ggsave(file.path(outputPath, "figure 1 - cer, d & nnc.png"), 
+       width = 14,
+       height = 8,
+       type='cairo-png');
+
+```
+
+## The association between control event rate (base rate) and NNC for different values of Cohen's d
+
+```{r fig.width=12, fig.height=8}
+
+df2 <- data.frame(d = factor(rep(d.categories, each=length(cer.continuous))),
+                 nnc = nnc2,
+                 cer = rep(cer.continuous, length(d.categories)));
+
+ggplot(df2, aes(x=cer, y=nnc, group=d, color=d)) +
+  geom_line(size=1.5) +
+  scale_color_brewer(type='qual', palette=3, direction=-1) +
+  scale_x_continuous(breaks=c(0, .2, .4, .6, .8, 1, 1.2, 1.4)) +
+  coord_cartesian(xlim=c(0, 1), ylim=c(2.3, 50)) +
+  xlab("Control Event Rate") + ylab("Numbers Needed for Change") +
+  guides(color = guide_legend(title = "d")) +
+  theme_bw(base_size = 22);
+
+ggsave(file.path(outputPath, "figure 2 - d, cer & nnc.png"), 
+       width = 14,
+       height = 8,
+       type='cairo-png');
+
+```
+
+## Venn diagram showing overlap in determinants
+
+```{r fig.width=6, fig.height=3}
+
+venn1 <- suppressWarnings(draw.triple.venn(area1=1, area2=1, area3=1,
+                                  n12=.2, n13=.5, n23=.4, n123=.1,
+                                  category=c("Intervention", "One determinant", "Health behavior"),
+                                  fill=c('#AAFFAA', '#AAAAFF', '#FFAAAA'),
+                                  col=c('#33FF33', '#3333FF', '#FF3333'),
+                                  fontfamily = rep("Arial", 7),
+                                  cat.fontfamily = rep("Arial", 3),
+                                  cat.dist=.1,
+                                  margin=.05, ind=FALSE));
+
+venn2 <- suppressWarnings(draw.triple.venn(area1=1, area2=1, area3=1,
+                                  n12=.2, n13=.5, n23=.4, n123=.2,
+                                  category=c("Intervention", "Regression model\nwith two determinants", "Health behavior"),
+                                  fill=c('#AAFFAA', '#AAAAFF', '#FFAAAA'),
+                                  col=c('#33FF33', '#3333FF', '#FF3333'),
+                                  fontfamily = rep("Arial", 7),
+                                  cat.fontfamily = rep("Arial", 3),
+                                  cat.dist=.1,
+                                  margin=.05, ind=FALSE));
+
+grid.draw(arrangeGrob(venn1, venn2, ncol=2));
+
+
+
+```
