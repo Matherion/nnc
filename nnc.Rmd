@@ -111,7 +111,7 @@ ggsave(file.path(outputPath, "figure 2 - d, cer & nnc.png"),
 
 ## Illustrations of the CER and EER
 
-```{r fig.width=12, fig.height=8}
+```{r fig.width=15, fig.height=5}
 
 # plot1 <- ggNNC(erDataSeq(er=.2, meanValue=3.5, sd=1), d=.5);
 # plot2 <- ggNNC(erDataSeq(er=.5, meanValue=3.5, sd=1), d=.5);
@@ -130,3 +130,40 @@ ggsave(file.path(outputPath, "figure 4 - cer illustrations.png"),
        type='cairo-png');
 
 ```
+
+## Examples
+
+### Example 1: Continuous estimate
+
+```{r}
+
+
+
+```
+
+### Example 2: Binary estimate
+
+Our second illustration of the NNC procedure in the context of behavior change uses a recent ‘nudging’ study (Lehmann, Chapman, Franssen, Kok, & Ruiter, 2016). By changing the default ‘opt-in’ to ‘opt-out’ in an e-mail invitation to employees to get vaccinated, these researchers made the following counts given condition:
+
+```{r}
+
+
+
+```
+
+### Example 3: Gaussian estimate
+
+```{r}
+
+
+
+```
+
+### Example 4: Mediated estimate
+
+```{r}
+
+
+
+```
+
