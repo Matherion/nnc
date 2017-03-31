@@ -1,7 +1,7 @@
 ---
 title: "Numbers Needed for Change"
 author: "Stefan Gruijters & Gjalt-Jorn Ygram Peters"
-date: "14 February 2017"
+date: "`r format(Sys.time(), '%Y-%m-%d at %X');`"
 output: html_document
 ---
 
@@ -9,13 +9,18 @@ output: html_document
 
 knitr::opts_chunk$set(echo = FALSE);
 
-nnc <- function(d = NULL, cer = NULL, t = NULL, prevent = TRUE, r = 1,
+nnc <- function(d = NULL, cer = NULL, eventDesirable = TRUE,
+                eventIfHigher = TRUE, r = 1,
                 d.ci = NULL, cer.ci = NULL, r.ci=NULL,
-                d.n = NULL, cer.n = NULL, r.n = NULL, silent=FALSE) {
+                d.n = NULL, cer.n = NULL, r.n = NULL, plot = TRUE,
+                meanValue = 0, sd = 1,
+                returnPlot = TRUE, silent=FALSE) {
 
-  if (is.null(d) && is.null(t)) {
-    stop("You have to provide an estimate for Cohen's d (argument 'd') or an ",
-         "estimate for Student's t (argument 't').");
+  if (is.null(d)) {
+    stop("You have to provide an estimate for Cohen's d (argument 'd'). If you do not have ",
+         "a Cohen's d estimate, instead use convert.d.to.t (see ?convert.d.to.t for the ",
+         "manual), e.g. provide:\n\n  nnc(d=convert.t.to.d(t = 3.2, df=98));\n\n",
+         "Of course, replace '3.2' and '98' with your t value and the degrees of freedom.");
   }
   
   if (is.null(cer)) {
@@ -23,28 +28,185 @@ nnc <- function(d = NULL, cer = NULL, t = NULL, prevent = TRUE, r = 1,
       warning("You did not specify a Control Event Rate (CER, argument 'cer'). I will use ",
               "Kraemer & Kupfer's approach.");
     }
+  } else {
+    if (length(cer) > 1) {
+      stop("When specifying a confidence interval for the CER, use argument 'cer.ci'!");
+    }
   }
   
-  ### Compute confidence intervals from 
-  if (is.null(d.ci) && !is.null(d.n)) {
+    if (length(d) > 1) {
+      stop("When specifying a confidence interval for Cohen's d, use argument 'd.ci'!");
+    }
+    if (length(r) > 1) {
+      stop("When specifying a confidence interval for the correlation, use argument 'r.ci'!");
+    }
+  
+  if (!is.null(r.ci) && (r == 1)) r <- NULL;
+  
+  ### Compute confidence intervals if we can
+  if (is.null(d.ci) && !is.null(d.n))
     d.ci <- cohensdCI(d=d, n = sum(n.d));
-  }
-  
-  if (is.null(cer.ci) && !is.null(cer.n)) {
+  if (is.null(cer.ci) && !is.null(cer.n))
     cer.ci <- prop.test(cer*cer.n, cer.n)$conf.int[1:2]
-  }
-  
-  ### Only apply single correction if we only have one confidence interval
-  if (!is.null(d.ci) && is.null(cer.ci)) {
-    cer.ci <- rep(cer, 2);
-  }
-  
-  if (is.null(d.ci) && !is.null(cer.ci)) {
-    d.ci <- rep(d, 2);
-  }
-  
-  
+  if (is.null(r.ci) && !is.null(r.n))
+    r.ci <- confIntR(r=r, n = r.n);
 
+  ### Where we were unable to compute confidence intervals, just take the
+  ### point estimate as both lower and upper bounds
+  if (is.null(cer.ci)) cer.ci <- rep(cer, 2);
+  if (is.null(d.ci)) d.ci <- rep(d, 2);
+  if (is.null(r.ci)) r.ci <- rep(r, 2);
+  
+  ### Sort confidence intervals so that the value leading to the
+  ### most conservative outcome is the highest
+  
+  ### Lower values are more conservative
+  d.ci <- sort(d.ci);
+  
+  ### Higher values are more conservative
+  r.ci <- sort(r.ci, decreasing=TRUE);
+
+  ### Values closer to .5 are more conservative
+  if (cer.ci[2] - .5 == min(abs(cer.ci - .5))) cer.ci <- rev(cer.ci);
+
+  nnc.lb <- convert.d.to.nnc(d=d.ci[1], cer=cer.ci[1], r=r.ci[1],
+                             eventDesirabl=eventDesirable); 
+  nnc.ub <- convert.d.to.nnc(d=d.ci[2], cer=cer.ci[2], r=r.ci[2],
+                            eventDesirabl=eventDesirable); 
+  
+  eer.ci <- c(attr(nnc.lb, 'eer'),
+              attr(nnc.ub, 'eer'));
+
+  nnc <- c(nnc.lb,
+           nnc.ub);
+  
+  if (identical(nnc[1], nnc[2])) nnc <- nnc[1];
+
+  res <- ceiling(nnc);
+  
+  attr(res, 'nnc.raw') <- nnc;
+  attr(res, 'eventDesirable') <- eventDesirable;
+  
+  if (diff(range(cer.ci))) {
+    attr(res, 'cer.ci') <- cer.ci;
+  } else {
+    attr(res, 'cer') <- cer.ci[1]
+  }
+
+  if (diff(range(eer.ci))) {
+    attr(res, 'eer.ci') <- eer.ci;
+  } else {
+    attr(res, 'eer') <- eer.ci[1]
+  }
+  
+  if (diff(range(r.ci))) {
+    attr(res, 'r.ci') <- r.ci;
+  } else {
+    attr(res, 'r') <- r.ci[1]
+  }
+
+  if (diff(range(d.ci))) {
+    attr(res, 'd.ci') <- d.ci;
+  } else {
+    attr(res, 'd') <- d.ci[1]
+  }
+  
+  if (plot) {
+    if (is.null(d)) {
+      d <- mean(d.ci);
+      if (!silent)
+        cat0("Warning: no point estimate for Cohen's d supplied, so using the simple mean ",
+             "of the lower and upper confidence interval bounds (", round(d, 2), ") for the plot!\n");
+    }
+    if (is.null(cer)) {
+      cer <- mean(cer.ci);
+      if (!silent)
+        cat0("Warning: no point estimate for the CER supplied, so using the simple mean ",
+             "of the lower and upper confidence interval bounds (", formatR(cer), ") for the plot!\n");
+    }
+    if (is.null(r)) {
+      r <- mean(r.ci);
+      if (!silent)
+        cat0("Warning: no point estimate for the correlation supplied, so using the simple mean ",
+             "of the lower and upper confidence interval bounds (", formatR(r), ") for the plot!\n");
+    }
+
+    plot <- ggNNC(erDataSeq(er=cer, meanValue=meanValue, sd=sd, eventIfHigher=eventIfHigher),
+                  eventDesirable = eventDesirable,
+                  eventIfHigher = eventIfHigher,
+                  d=d, r=r);
+    if (returnPlot) {
+      attr(res, 'plot') <- plot;
+    } else {
+      grid.newpage();
+      grid.draw(plot);
+    }
+  }
+  
+  class(res) <- c('nnc', class(res));
+
+  return(res);
+  
+}
+
+print.nnc <- function(x, ...) {
+  if (!is.null(attr(x, 'plot'))) {
+    grid.newpage();
+    grid.draw(attr(x, 'plot'));
+  }
+  
+  if (is.null(attr(x, 'cer.ci'))) {
+    cer <- attr(x, 'cer');
+    cerStatement <- paste0("a Control Event Rate (CER) of ", cer);
+  } else {
+    cer <- formatCI(sort(attr(x, 'cer.ci')), noZero=TRUE);
+    cerStatement <- paste0("a Control Event Rate (CER) with a confidence interval of ",
+                           cer);
+  }
+  
+  if (is.null(attr(x, 'eer.ci'))) {
+    eer <- formatR(attr(x, 'eer'));
+    eerStatement <- paste0(", an Experimental Event Rate (EER) of ", eer);
+  } else {
+    eer <- formatCI(sort(attr(x, 'eer.ci')), noZero=TRUE);
+    eerStatement <- paste0(", an Experimental Event Rate (EER) with a confidence interval of ",
+                           eer);
+  }
+
+  if (is.null(attr(x, 'd.ci'))) {
+    d <- attr(x, 'd');
+    dStatement <- paste0(" and a Cohen's d of ", d);
+  } else {
+    d <- formatCI(sort(attr(x, 'd.ci')));
+    dStatement <- paste0(" and a Cohen's d with a confidence interval of ",
+                         d);
+  }
+  
+  if (is.null(attr(x, 'r.ci'))) {
+    r <- attr(x, 'r');
+    if (r < 1) {
+      rStatement <- paste0(", and assuming a correlation of ", formatR(r),
+                           " between the dependent measure and behavior");
+    } else {
+      rStatement <- "";
+    }
+  } else {
+    r <- formatCI(sort(attr(x, 'r.ci')), noZero=TRUE);
+    rStatement <- paste0(", and assuming a correlation with a confidence interval of ",
+                         r,
+                         " between the dependent measure and behavior");
+  }
+
+  if (length(x) > 1) {
+    nnc <- formatCI(x);
+  } else {
+    nnc <- x;
+  }
+  
+  cat0("\n",
+       "Numbers Needed for Change: ", nnc, "\n\n",
+       "(Based on ", cerStatement,
+       eerStatement, dStatement, rStatement, ".)\n");
 }
 
 convert.d.to.nnc <- function(d, cer, r = 1, eventDesirable=TRUE) {
@@ -62,12 +224,16 @@ convert.d.to.nnc <- function(d, cer, r = 1, eventDesirable=TRUE) {
     }
   } else {
     if (eventDesirable) {
-      return(1 / (convert.d.to.eer(d, cer, eventDesirable=TRUE) - cer));
+      eer <- convert.d.to.eer(d, cer, eventDesirable=TRUE);
+      nnc <- 1 / (eer - cer);
     } else {
       cat0("Warning: this is experimental and may not always work!\n");
-      return(1 / (convert.d.to.eer(d, cer, eventDesirable=FALSE) - cer));
+      eer <- convert.d.to.eer(d, cer, eventDesirable=FALSE);
+      nnc <- 1 / (eer - cer);
     }
   }
+  attr(nnc, 'eer') <- eer;
+  return(nnc);
 }
 
 convert.d.to.eer <- function(d, cer, eventDesirable=TRUE) {
@@ -78,6 +244,238 @@ convert.d.to.eer <- function(d, cer, eventDesirable=TRUE) {
     cat0("Warning: this is experimental and may not always work! Computed EER = ", round(res, 3), ".\n");
     return(res);
   }
+}
+
+erDataSeq <- function(er = NULL, erValue = NULL, meanValue = NULL, sd = NULL,
+                      eventIfHigher = TRUE,
+                      pRange = c(.000001, .99999), xStep=.01) {
+  if (is.null(er) && is.null(erValue)) {
+    stop("Provide either the control event rate (er; a proportion, ",
+         "a number between 0 and 1) or the cut-off value that determines ",
+         "an 'event' on the same scale as meanValue and sd.");
+  }
+
+  if (is.null(er)) {
+    ### Determine er from erValue
+    if (is.null(meanValue) || is.null(sd)) {
+      stop("When I need to derive the er from the cut-off value, ",
+           "you must also provide me with the mean and the standard ",
+           "deviation!");
+    }
+    z <- (meanValue - erValue) / sd;
+    er <- pnorm(erValue, mean=meanValue, df=df);
+  } else {
+    z <- qnorm(p = er);
+  }
+  
+  if (eventIfHigher) z <- -1 * z;
+
+  if (is.null(erValue)) {
+    if (is.null(meanValue)) {
+      stop("If not providing a erValue, you must provide a mean!");
+    }
+    if (is.null(sd)) {
+      stop("If not providing a erValue, you must provide a standard deviation!");
+    }
+    erValue <- meanValue + z * sd;
+  }
+  
+  if (is.null(meanValue)) {
+    if (is.null(erValue)) {
+      stop("If not providing a mean, you must provide a erValue!");
+    }
+    if (is.null(sd)) {
+      stop("If not providing a mean, you must provide a standard deviation!");
+    }
+    meanValue <- erValue - z * sd;
+  }
+  
+  ### Get range from where to where to generate values
+  xRange <- c(qnorm(min(pRange), mean=meanValue, sd=sd),
+              qnorm(max(pRange), mean=meanValue, sd=sd));
+  
+  res <- data.frame(x = seq(from=xRange[1], to=xRange[2], by=xStep));
+  res$density <- dnorm(res$x, mean=meanValue, sd=sd);
+
+  attr(res, 'er') <- er;
+  attr(res, 'erValue') <- erValue;
+  attr(res, 'meanValue') <- meanValue;
+  attr(res, 'sd') <- sd;
+
+  class(res) <- c('erDataSeq', class(res));
+  
+  return(res);
+  
+}
+
+ggNNC <- function(cerDataSeq, d = NULL,
+                  eventDesirable = TRUE,
+                  eventIfHigher = TRUE,
+                  r = 1,
+                  xlab = "Continuous outcome",
+                  theme=theme_bw(),
+                  lineSize=1,
+                  cerColor = '#EBF2F8',
+                  eerColor = "#172F47", #'#CADDED',
+                  cerAlpha = .66,
+                  eerAlpha = .66,
+                  xlim = NULL,
+                  showLegend = TRUE,
+                  lineColor = "#000000",
+                  verticalLineColor = "#172F47",
+                  eventColor = "#00FF00",
+                  eventAlpha = .2,
+                  noEventColor = "#FF0000",
+                  noEventAlpha = .2,
+                  eventTextColor = "#009900",
+                  noEventTextColor = "#990000",
+                  dArrowDistance = .04 * max(cerDataSeq$density),
+                  dLabelDistance = .08 * max(cerDataSeq$density)) {
+  
+  if (!('erDataSeq' %in% class(cerDataSeq))) {
+    stop("As 'erDataSeq', you must pass an object of class 'erDataSeq', such as ",
+         "the result of a call to function 'erDataSeq' (see ?erDataSeq for help).");
+  }
+
+  cer <- attr(cerDataSeq, 'er');
+
+  if (!is.null(d)) d <- convert.r.to.d(convert.d.to.r(d) * r);
+  if (!is.null(d)) {
+    eer <- convert.d.to.eer(d, cer, eventDesirable=eventDesirable);
+  } else {
+    eer <- cer;
+  }
+
+  if (is.null(d)) d <- 0;
+  
+  sd <- attr(cerDataSeq, 'sd');
+  cerValue <- attr(cerDataSeq, 'erValue');
+  meanValue <- attr(cerDataSeq, 'meanValue');
+  eerDataSeq <- cerDataSeq;
+  eerDataSeq$x <- eerDataSeq$x + d * sd;
+  newMeanValue <- meanValue + d * sd;
+  cerValueDensity <- cerDataSeq[cerDataSeq$x == max(cerDataSeq[cerDataSeq$x < cerValue, 'x']), 'density'];
+  eerValueDensity <- eerDataSeq[eerDataSeq$x == max(eerDataSeq[eerDataSeq$x < cerValue, 'x']), 'density'];
+  cerLabel <- paste0("CER = ", round(cer, 2), ifelse(d > 0, "      ", ""));
+  eerLabel <- paste0("EER = ", round(eer, 2));
+  
+  ### Compute sensible limits
+  if (meanValue < newMeanValue) {
+    lowestXWithDensity <- floor(max(cerDataSeq[cerDataSeq$density < .001 & cerDataSeq$x < meanValue, 'x']));
+    highestXWithDensity <- ceiling(min(eerDataSeq[eerDataSeq$density < .001 & eerDataSeq$x > newMeanValue, 'x']));
+  } else {
+    lowestXWithDensity <- floor(max(eerDataSeq[eerDataSeq$density < .001 & eerDataSeq$x < newMeanValue, 'x']));
+    highestXWithDensity <- ceiling(min(cerDataSeq[cerDataSeq$density < .001 & cerDataSeq$x > meanValue, 'x']));
+  }
+  if (is.null(xlim)) xlim <- c(lowestXWithDensity,
+                               highestXWithDensity);
+
+  ### Basic plot
+  basePlot <- ggplot() + theme;
+  
+  ### If limits are specified, set them
+  if (!is.null(xlim)) {
+    basePlot <- basePlot + xlim(xlim);
+  }
+  
+  ### Layer with CER normal curve
+  if (eventIfHigher) {
+    cerFill <- geom_ribbon(data = cerDataSeq[cerDataSeq$x > cerValue, ],
+                  aes(x=x, ymax=density, ymin=0, fill=cerLabel), alpha=cerAlpha);
+  } else  {
+    cerFill <- geom_ribbon(data = cerDataSeq[cerDataSeq$x < cerValue, ],
+                  aes(x=x, ymax=density, ymin=0, fill=cerLabel), alpha=cerAlpha);
+  }
+  ### Add line on top
+  cerOutline <- geom_line(data=cerDataSeq, aes(x=x, y=density), size=lineSize, color=lineColor,
+                          na.rm=TRUE);
+  ### Vertical line to show CER
+  cerLine <- geom_segment(aes(x=cerValue, xend=cerValue, y=0, yend=cerValueDensity),
+                          size=lineSize, color=verticalLineColor);
+  
+  ### Layer with EER normal curve
+  if (eventIfHigher) {
+    eerFill <- geom_ribbon(data = eerDataSeq[eerDataSeq$x > cerValue, ],
+                            aes(x=x, ymax=density, ymin=0, fill=eerLabel), alpha=eerAlpha);
+  } else {
+    eerFill <- geom_ribbon(data = eerDataSeq[eerDataSeq$x < cerValue, ],
+                            aes(x=x, ymax=density, ymin=0, fill=eerLabel), alpha=eerAlpha);
+  }
+  ### Add line on top
+  eerOutline <- geom_line(data=eerDataSeq, aes(x=x, y=density), size=lineSize, color=lineColor,
+                          na.rm=TRUE);
+  ### Vertical line to show EER
+  eerLine <- geom_segment(aes(x=cerValue, xend=cerValue, y=0, yend=eerValueDensity),
+                          size=lineSize, color=verticalLineColor);
+  
+  ### Indicator for difference between distributions
+  dArrow <- geom_segment(aes(x = meanValue, xend = newMeanValue,
+                             y = max(cerDataSeq$density) + dArrowDistance,
+                             yend = max(cerDataSeq$density) + dArrowDistance),
+                         arrow=arrow(length = unit(.02, 'npc'), ends='both', type='closed', angle=20),
+                         size=lineSize, color=lineColor);
+  dText <- geom_text(aes(x = mean(c(meanValue, newMeanValue)),
+                         y = max(cerDataSeq$density) + dLabelDistance),
+                     hjust=.5, label=paste0("d = ", round(d, 2)));
+  
+  ### Layer with box to display at the bottom
+  if (eventIfHigher) {
+    eventBarNoEvent <- geom_rect(aes(xmin = -Inf, xmax = cerValue, ymax = 0, ymin = -Inf),
+                                 fill=noEventColor, alpha=noEventAlpha);
+    eventBarEvent <- geom_rect(aes(xmin = cerValue, xmax = Inf, ymax = 0, ymin = -Inf),
+                               fill=eventColor, alpha=eventAlpha);
+    eventBarNoEventText <- geom_text(aes(x = mean(c(lowestXWithDensity, cerValue)),
+                                         y = -.5*dArrowDistance,
+                                         label=paste0('No event (< ', round(cerValue, 2), ")")),
+                                     vjust=1, color = noEventTextColor);
+    eventBarEventText <- geom_text(aes(x = mean(c(highestXWithDensity, cerValue)),
+                                       y = -.5*dArrowDistance,
+                                       label=paste0('Event (> ', round(cerValue, 2), ")")),
+                                   vjust=1, color = eventTextColor);
+  } else {
+    eventBarNoEvent <- geom_rect(aes(xmin = cerValue, xmax = Inf, ymax = 0, ymin = -Inf),
+                                 fill=noEventColor, alpha=noEventAlpha);
+    eventBarEvent <- geom_rect(aes(xmin = -Inf, xmax = cerValue, ymax = 0, ymin = -Inf),
+                               fill=eventColor, alpha=eventAlpha);
+    eventBarNoEventText <- geom_text(aes(x = mean(c(highestXWithDensity, cerValue)),
+                                         y = -.5*dArrowDistance,
+                                         label=paste0('No event (< ', round(cerValue, 2), ")")),
+                                     vjust=1, color = noEventTextColor);
+    eventBarEventText <- geom_text(aes(x = mean(c(lowestXWithDensity, cerValue)),
+                                       y = -.5*dArrowDistance,
+                                       label=paste0('Event (> ', round(cerValue, 2), ")")),
+                                   vjust=1, color = eventTextColor);
+  }
+  
+  ### Horizontal line at 0 (just aesthetic)
+  zeroLine <- geom_hline(aes(yintercept=0), color=lineColor, size=lineSize);
+  
+  ### Build & return plot
+  basePlot <- basePlot +
+    eventBarNoEvent + eventBarEvent +
+    eventBarNoEventText + eventBarEventText;
+  if (d>0) {
+    # if (cerValueDensity > eerValueDensity) {
+      # basePlot <- basePlot + cerFill + cerOutline + cerLine +
+      #   eerFill + eerOutline + eerLine;
+    # } else {
+      basePlot <- basePlot + eerFill + eerOutline + eerLine +
+        cerFill + cerOutline + cerLine;
+    # }
+    basePlot <- basePlot + dArrow + dText + zeroLine +
+      scale_fill_manual(values = c(cerColor, eerColor), name="");
+  } else {
+    basePlot <- basePlot + eventBarNoEvent + eventBarEvent +
+             cerFill + cerOutline + cerLine + zeroLine +
+      scale_fill_manual(values = cerColor, name="");
+    
+  }
+  if (showLegend) {
+    basePlot <- basePlot + theme(legend.position="top");
+  } else {
+    basePlot <- basePlot + theme(legend.position="none");
+  }
+  return(basePlot + xlab(xlab) + ylab('Density'));
 }
 
 ######################################################################
@@ -103,6 +501,8 @@ outputPath <- basePath;
 
 require(userfriendlyscience);
 safeRequire('ggplot2');
+safeRequire('grid');
+safeRequire('gridExtra');
 safeRequire('VennDiagram');
 
 ######################################################################
@@ -178,32 +578,18 @@ ggsave(file.path(outputPath, "figure 2 - d, cer & nnc.png"),
 
 ```
 
-## Venn diagram showing overlap in determinants
+```{r fig.width=12, fig.height=8}
 
-```{r fig.width=6, fig.height=3}
+plot1 <- ggNNC(erDataSeq(er=.2, meanValue=3.5, sd=1), d=.5);
+plot2 <- ggNNC(erDataSeq(er=.5, meanValue=3.5, sd=1), d=.5);
+plot3 <- ggNNC(erDataSeq(er=.8, meanValue=3.5, sd=1), d=.5);
 
-venn1 <- suppressWarnings(draw.triple.venn(area1=1, area2=1, area3=1,
-                                  n12=.2, n13=.5, n23=.4, n123=.1,
-                                  category=c("Intervention", "One determinant", "Health behavior"),
-                                  fill=c('#AAFFAA', '#AAAAFF', '#FFAAAA'),
-                                  col=c('#33FF33', '#3333FF', '#FF3333'),
-                                  fontfamily = rep("Arial", 7),
-                                  cat.fontfamily = rep("Arial", 3),
-                                  cat.dist=.1,
-                                  margin=.05, ind=FALSE));
+Figure4 <- grid.arrange(plot1, plot2, plot3, ncol=3);
 
-venn2 <- suppressWarnings(draw.triple.venn(area1=1, area2=1, area3=1,
-                                  n12=.2, n13=.5, n23=.4, n123=.2,
-                                  category=c("Intervention", "Regression model\nwith two determinants", "Health behavior"),
-                                  fill=c('#AAFFAA', '#AAAAFF', '#FFAAAA'),
-                                  col=c('#33FF33', '#3333FF', '#FF3333'),
-                                  fontfamily = rep("Arial", 7),
-                                  cat.fontfamily = rep("Arial", 3),
-                                  cat.dist=.1,
-                                  margin=.05, ind=FALSE));
-
-grid.draw(arrangeGrob(venn1, venn2, ncol=2));
-
-
+ggsave(file.path(outputPath, "figure 4 - cer illustrations.png"),
+       plot=Figure4,
+       width = 14,
+       height = 8,
+       type='cairo-png');
 
 ```
