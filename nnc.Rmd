@@ -125,8 +125,8 @@ Figure4 <- grid.arrange(plot1, plot2, plot3, ncol=3);
 
 ggsave(file.path(outputPath, "figure 4 - cer illustrations.png"),
        plot=Figure4,
-       width = 14,
-       height = 6,
+       width = 15,
+       height = 5,
        type='cairo-png');
 
 ```
