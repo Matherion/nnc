@@ -109,18 +109,24 @@ ggsave(file.path(outputPath, "figure 2 - d, cer & nnc.png"),
 
 ```
 
+## Illustrations of the CER and EER
+
 ```{r fig.width=12, fig.height=8}
 
-plot1 <- ggNNC(erDataSeq(er=.2, meanValue=3.5, sd=1), d=.5);
-plot2 <- ggNNC(erDataSeq(er=.5, meanValue=3.5, sd=1), d=.5);
-plot3 <- ggNNC(erDataSeq(er=.8, meanValue=3.5, sd=1), d=.5);
+# plot1 <- ggNNC(erDataSeq(er=.2, meanValue=3.5, sd=1), d=.5);
+# plot2 <- ggNNC(erDataSeq(er=.5, meanValue=3.5, sd=1), d=.5);
+# plot3 <- ggNNC(erDataSeq(er=.8, meanValue=3.5, sd=1), d=.5);
+
+plot1 <- ggNNC(erDataSeq(erValue=125, meanValue=90, sd=30), d=.5);
+plot2 <- ggNNC(erDataSeq(erValue=135, meanValue=90, sd=30), d=.5);
+plot3 <- ggNNC(erDataSeq(erValue=145, meanValue=90, sd=30), d=.5);
 
 Figure4 <- grid.arrange(plot1, plot2, plot3, ncol=3);
 
 ggsave(file.path(outputPath, "figure 4 - cer illustrations.png"),
        plot=Figure4,
        width = 14,
-       height = 8,
+       height = 6,
        type='cairo-png');
 
 ```
