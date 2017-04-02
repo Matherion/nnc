@@ -113,13 +113,13 @@ ggsave(file.path(outputPath, "figure 2 - d, cer & nnc.png"),
 
 ```{r fig.width=15, fig.height=5}
 
-# plot1 <- ggNNC(erDataSeq(er=.2, meanValue=3.5, sd=1), d=.5);
-# plot2 <- ggNNC(erDataSeq(er=.5, meanValue=3.5, sd=1), d=.5);
-# plot3 <- ggNNC(erDataSeq(er=.8, meanValue=3.5, sd=1), d=.5);
+# plot1 <- ggNNC(erDataSeq(er=.2, mean=3.5, sd=1), d=.5);
+# plot2 <- ggNNC(erDataSeq(er=.5, mean=3.5, sd=1), d=.5);
+# plot3 <- ggNNC(erDataSeq(er=.8, mean=3.5, sd=1), d=.5);
 
-plot1 <- ggNNC(erDataSeq(erValue=125, meanValue=90, sd=30), d=.5);
-plot2 <- ggNNC(erDataSeq(erValue=135, meanValue=90, sd=30), d=.5);
-plot3 <- ggNNC(erDataSeq(erValue=145, meanValue=90, sd=30), d=.5);
+plot1 <- ggNNC(erDataSeq(threshold=125, mean=90, sd=30), d=.5);
+plot2 <- ggNNC(erDataSeq(threshold=135, mean=90, sd=30), d=.5);
+plot3 <- ggNNC(erDataSeq(threshold=145, mean=90, sd=30), d=.5);
 
 Figure4 <- grid.arrange(plot1, plot2, plot3, ncol=3);
 
@@ -131,39 +131,72 @@ ggsave(file.path(outputPath, "figure 4 - cer illustrations.png"),
 
 ```
 
-## Examples
+## Examples: tutorial
+
+In this section, the examples from the paper will be shown, including the R commands used to generate the results. First, two hypothetical datasets will be generated that will be used for these tutorials.
+
+```{r echo=TRUE}
+
+  ### Set a seed to enable replication of the data generation
+  set.seed(20170402);
+
+  ### Simulate data for a continuous behavior measure for
+  ### the control condition (i.e. the control event rate)
+  exampleData <- data.frame(behavior = rnorm(1000, mean=90, sd=30));
+
+```
 
 ### Example 1: Continuous estimate
 
-```{r}
+In this situation, we have a continuous behavior estimate, and we need to establish the CER. This means we first have to dichotomize this continuous measure. We can then establish the event rate and use this to compute the NNC.
 
+The threshold value is 135 minutes, so this is where we dichotomize.
 
+```{r echo=TRUE}
+
+  ### Dichotomize the behavior measure
+  exampleData$behavior_dichotomous <- as.numeric(exampleData$behavior >= 135);
+
+  ### Convert to a factor with meaningful level labels
+  exampleData$behavior_dichotomous <- factor(exampleData$behavior_dichotomous,
+                                             levels=0:1,
+                                             labels=c("No Event", "Event"));
+
+  ### Show frequencies using the'freq' function from the 
+  ### userfriendlyscience package
+  freq(exampleData$behavior_dichotomous);
+  
+  ### Compute numbers needed for change
+  nnc(cer=.07, mean = 90, sd = 30, d = .5);
 
 ```
 
 ### Example 2: Binary estimate
 
-Our second illustration of the NNC procedure in the context of behavior change uses a recent ‘nudging’ study (Lehmann, Chapman, Franssen, Kok, & Ruiter, 2016). By changing the default ‘opt-in’ to ‘opt-out’ in an e-mail invitation to employees to get vaccinated, these researchers made the following counts given condition:
+The variable we created in the previous example is an example of the variable that would be available to researchers who measured behavior using a dichotomous variable. Therefore, we can just repeat the last two steps: obtain the frequencies and show the NNC.
 
-```{r}
+```{r echo=TRUE}
 
-
-
-```
-
-### Example 3: Gaussian estimate
-
-```{r}
-
-
+  ### Show the frequencies.
+  freq(exampleData$behavior_dichotomous);
+  
+  ### Compute numbers needed for change
+  nnc(cer=.07, mean = 90, sd = 30, d = .5);
 
 ```
 
-### Example 4: Mediated estimate
+### Example 3: Parametric estimate
 
-```{r}
+This is a different example: here, a researcher has no primary data about the control event rate. Instead, only information about the distribution is available: a mean and a standard deviation. By assuming that the distribution is normal, it becomes possible to estimate the percentage of the distribution that exceeds the threshold.
 
+We will again use the same data, with a mean of 90 minutes, a standard deviation of 30 minutes, a threshold of 135 minutes, and an effect size estimate of Cohen's *d* = 0.5.
 
+In this situation, these numbers can just be directly provided to the `nnc` function.
+
+```{r echo=TRUE}
+
+  ### Compute numbers needed for change
+  nnc(threshold=135, mean = 90, sd = 30, d = .5);
 
 ```
 
