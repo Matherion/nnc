@@ -133,7 +133,11 @@ ggsave(file.path(outputPath, "figure 4 - cer illustrations.png"),
 
 ## Examples: tutorial
 
-In this section, the examples from the paper will be shown, including the R commands used to generate the results. First, two hypothetical datasets will be generated that will be used for these tutorials.
+To illustrate the procedures to estimate the NNC, we will show examples for three hypothetical situations, supplement the examples with R code that can easily be adjusted. The three situations are the three situations described above: one where a researcher has a continuous behavior measure for the control condition, one where instead, a dichotomous variable is available, and one where only a mean and standard deviation are available.
+
+Like in the primary example in the paper, the behavior data concerns exercise data, specifically, number of minutes participants exercicse per week. In all situations, 135 minutes is considered the threshold value (i.e. participants are considered participants with an 'event' if they exercise at least 135 minutes. The mean number of minutes participants exercise is 90, with a standard deviation of 30. The hypothetical intervention has an effect of Cohen's *d* = 0.5.
+
+First, a dataset will be simulated, consisting of a behavior measure collected for 1000 participants. 
 
 ```{r echo=TRUE}
 
@@ -142,17 +146,22 @@ In this section, the examples from the paper will be shown, including the R comm
 
   ### Simulate data for a continuous behavior measure for
   ### the control condition (i.e. the control event rate)
-  exampleData <- data.frame(behavior = rnorm(1000, mean=90, sd=30));
+  exampleData <- data.frame(behavior = round(rnorm(1000, mean=90, sd=30)));
 
 ```
 
 ### Example 1: Continuous estimate
 
-In this situation, we have a continuous behavior estimate, and we need to establish the CER. This means we first have to dichotomize this continuous measure. We can then establish the event rate and use this to compute the NNC.
-
-The threshold value is 135 minutes, so this is where we dichotomize.
+In this situation, we have a continuous behavior estimate, and we need to establish the CER. This means we first have to dichotomize this continuous measure using the threshold (135 minutes). We can then establish the event rate and use this to compute the NNC.
 
 ```{r echo=TRUE}
+
+  ### Install the userfriendlyscience package if necessary (this is
+  ### commented out because it's usually not necessary)
+  # install.packages('userfriendlyscience');
+
+  ### Load the userfriendlyscience package
+  require('userfriendlyscience');
 
   ### Dichotomize the behavior measure
   exampleData$behavior_dichotomous <- as.numeric(exampleData$behavior >= 135);
@@ -167,7 +176,7 @@ The threshold value is 135 minutes, so this is where we dichotomize.
   freq(exampleData$behavior_dichotomous);
   
   ### Compute numbers needed for change
-  nnc(cer=.07, mean = 90, sd = 30, d = .5);
+  nnc(cer=.071, mean = 90, sd = 30, d = .5);
 
 ```
 
@@ -181,7 +190,7 @@ The variable we created in the previous example is an example of the variable th
   freq(exampleData$behavior_dichotomous);
   
   ### Compute numbers needed for change
-  nnc(cer=.07, mean = 90, sd = 30, d = .5);
+  nnc(cer=.071, mean = 90, sd = 30, d = .5);
 
 ```
 
@@ -189,9 +198,7 @@ The variable we created in the previous example is an example of the variable th
 
 This is a different example: here, a researcher has no primary data about the control event rate. Instead, only information about the distribution is available: a mean and a standard deviation. By assuming that the distribution is normal, it becomes possible to estimate the percentage of the distribution that exceeds the threshold.
 
-We will again use the same data, with a mean of 90 minutes, a standard deviation of 30 minutes, a threshold of 135 minutes, and an effect size estimate of Cohen's *d* = 0.5.
-
-In this situation, these numbers can just be directly provided to the `nnc` function.
+We will again use the same data, with a mean of 90 minutes, a standard deviation of 30 minutes, a threshold of 135 minutes, and an effect size estimate of Cohen's *d* = 0.5. In this situation, however, these numbers can just be directly provided to the `nnc` function.
 
 ```{r echo=TRUE}
 
