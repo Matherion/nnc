@@ -7,34 +7,26 @@ output: html_document
 
 ```{r setup, include=FALSE}
 
-knitr::opts_chunk$set(echo = FALSE);
-
-######################################################################
-### Set base path
-######################################################################
-
-basePathVector <- c("B:/Data/Research/Numbers Needed for Change (NNC)/ncc (git)",
-                    "");
-
-######################################################################
-### Set the path variables
-######################################################################
-
-### Check which paths exist and set first existing path as base path
-basePath <- basePathVector[sapply(basePathVector, dir.exists)][1];
-
-### Set other directories for importing data etc
-workingPath <- basePath;
-outputPath <- basePath;
-
 ######################################################################
 ### Require packages
 ######################################################################
 
-require(userfriendlyscience);
-safeRequire('ggplot2');
-safeRequire('grid');
-safeRequire('gridExtra');
+require('ufs');
+require('ggplot2');
+require('grid');
+require('gridExtra');
+require('knitr');
+require('here');
+
+knitr::opts_chunk$set(echo = FALSE);
+
+######################################################################
+### Set paths
+######################################################################
+
+### Set other directories for importing data etc
+workingPath <- here::here();
+outputPath <- here::here();
 
 ######################################################################
 ### Set parameters
@@ -161,7 +153,8 @@ In this situation, we have a continuous behavior estimate, and we need to establ
   # install.packages('userfriendlyscience');
 
   ### Load the userfriendlyscience package
-  require('userfriendlyscience');
+  #require('userfriendlyscience');
+  require('ufs');
 
   ### Dichotomize the behavior measure
   exampleData$behavior_dichotomous <- as.numeric(exampleData$behavior >= 135);
@@ -173,10 +166,10 @@ In this situation, we have a continuous behavior estimate, and we need to establ
 
   ### Show frequencies using the'freq' function from the 
   ### userfriendlyscience package
-  freq(exampleData$behavior_dichotomous);
+  userfriendlyscience::freq(exampleData$behavior_dichotomous);
   
   ### Compute numbers needed for change
-  nnc(cer=.071, mean = 90, sd = 30, d = .5);
+  nnt(cer=.071, mean = 90, sd = 30, d = .5);
 
 ```
 
@@ -187,10 +180,10 @@ The variable we created in the previous example is an example of the variable th
 ```{r echo=TRUE}
 
   ### Show the frequencies.
-  freq(exampleData$behavior_dichotomous);
+  userfriendlyscience::freq(exampleData$behavior_dichotomous);
   
   ### Compute numbers needed for change
-  nnc(cer=.071, mean = 90, sd = 30, d = .5);
+  nnt(cer=.071, mean = 90, sd = 30, d = .5);
 
 ```
 
@@ -202,8 +195,26 @@ We will again use the same data, with a mean of 90 minutes, a standard deviation
 
 ```{r echo=TRUE}
 
-  ### Compute numbers needed for change
-  nnc(threshold=135, mean = 90, sd = 30, d = .5);
+  ### Compute numbers needed to treat
+  nnt(threshold=135,
+      mean = 90,
+      sd = 30,
+      d = .5);
+
+```
+
+### Example 4: Sensitivity analysis
+
+Choosing a threshold is normally based on substantive, context-specific information (e.g. minimum number of minutes one should exercise for health benefits; maximum grams of alcohol one should consume to reduce harms; maximum kilocalories to ingest in e given period). However, guidance from practice may be minimal or uncertain. Therefore, it is useful to conduct a sensitivity analysis to gauge the effects of specifying different thresholds. this is possible with the `thresholdSensitivity` argument:
+
+```{r echo=TRUE}
+
+  ### Compute numbers needed to treat
+  nnt(threshold=135,
+      mean = 90,
+      sd = 30,
+      d = .5,
+      thresholdSensitivity=c(115, 125, 145, 155));
 
 ```
 
