@@ -1,5 +1,5 @@
 ---
-title: "Numbers Needed for Change"
+title: "Numbers Needed to Treat for Behavior Change"
 author: "Stefan Gruijters & Gjalt-Jorn Ygram Peters"
 date: "`r format(Sys.time(), '%Y-%m-%d at %X');`"
 output: html_document
