@@ -12,6 +12,7 @@ output: html_document
 ######################################################################
 
 require('ufs');
+require('behaviorchange');
 require('ggplot2');
 require('grid');
 require('gridExtra');
@@ -148,13 +149,12 @@ In this situation, we have a continuous behavior estimate, and we need to establ
 
 ```{r echo=TRUE}
 
-  ### Install the userfriendlyscience package if necessary (this is
+  ### Install the behaviorchange package if necessary (this is
   ### commented out because it's usually not necessary)
-  # install.packages('userfriendlyscience');
+  # install.packages('behaviorchange');
 
-  ### Load the userfriendlyscience package
-  #require('userfriendlyscience');
-  require('ufs');
+  ### Load the behaviorchange package
+  require('behaviorchange');
 
   ### Dichotomize the behavior measure
   exampleData$behavior_dichotomous <- as.numeric(exampleData$behavior >= 135);
@@ -164,9 +164,8 @@ In this situation, we have a continuous behavior estimate, and we need to establ
                                              levels=0:1,
                                              labels=c("No Event", "Event"));
 
-  ### Show frequencies using the'freq' function from the 
-  ### userfriendlyscience package
-  userfriendlyscience::freq(exampleData$behavior_dichotomous);
+  ### Show frequencies
+  table(exampleData$behavior_dichotomous);
   
   ### Compute numbers needed for change
   nnt(cer=.071, mean = 90, sd = 30, d = .5);
@@ -180,7 +179,7 @@ The variable we created in the previous example is an example of the variable th
 ```{r echo=TRUE}
 
   ### Show the frequencies.
-  userfriendlyscience::freq(exampleData$behavior_dichotomous);
+  table(exampleData$behavior_dichotomous);
   
   ### Compute numbers needed for change
   nnt(cer=.071, mean = 90, sd = 30, d = .5);
@@ -214,6 +213,22 @@ Choosing a threshold is normally based on substantive, context-specific informat
       mean = 90,
       sd = 30,
       d = .5,
+      thresholdSensitivity=c(115, 125, 145, 155));
+
+```
+
+### Example 5: Correct Cohen's *d* for unreliability
+
+The outcome measure in behavior change research is often imperfectly reliable (i.e. with a reliability lower than 1). Cohen's *d* can be corrected for this, and this can be achieved by specifying the reliability in argument `dReliability`:
+
+```{r echo=TRUE}
+
+  ### Compute numbers needed to treat
+  nnt(threshold=135,
+      mean = 90,
+      sd = 30,
+      d = .5,
+      dReliability = .7,
       thresholdSensitivity=c(115, 125, 145, 155));
 
 ```
