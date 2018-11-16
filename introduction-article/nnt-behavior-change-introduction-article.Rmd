@@ -8,8 +8,16 @@ output: html_document
 ```{r setup, include=FALSE}
 
 ######################################################################
-### Require packages
+### Load required packages
+###
+### Note that packages can only be loaded if they are installed
+### locally. Ifthey are not, use 'install.packages' to do so.
 ######################################################################
+
+### Potentially install newest version of 'behaviorchange' and 'ufs'
+### packages
+# devtools::install_github('academy-of-behavior-change/behaviorchange');
+# devtools::install_github('matherion/ufs');
 
 require('ufs');
 require('behaviorchange');
@@ -18,8 +26,11 @@ require('grid');
 require('gridExtra');
 require('knitr');
 require('here');
+require('compute.es');
+require('effsize');
 
-knitr::opts_chunk$set(echo = FALSE);
+### By default, hide the R code in the output
+knitr::opts_chunk$set(echo = TRUE);
 
 ######################################################################
 ### Set paths
@@ -123,6 +134,21 @@ ggsave(file.path(outputPath, "figure 4 - cer illustrations.png"),
        type='cairo-png');
 
 ```
+
+## Full walkthrough of example 2: alcohol
+
+In 2015, the Dutch health council revised her recommendations for a healthy diet. This recommendation aligns with the WHO recommendation that there is no safe amount of alcohol, but where the WHO recommends consuming no more than 14 standard units a week (which increases one's risk of early death by 1%), the Dutch health council minimizes risks more by recommending consuming no more than 7 standard units a week. This, therefore, is the threshold that defines the desirable behavior.
+
+The Dutch statistical bureau, Statistics Nederlands, measures the proportion of the Dutch population over 12 years of age who consumes one unit a day or less. For 2017, this proportion was 40.1%. This is the control event rate (CER). The mean number of units per week per drinker was `7*1.3`, and 80.4% of the population drinks alcohol, so the mean number of units per day in the control group is .804 * 18.2 = 7.3164 (19.6% nondrinkers consume zero units). We assume a standard deviation of 3 units.
+
+If we now evaluate a behavior change intervention, and it obtains a Cohen's $d$ of .5 (qualified as a moderate effect by Cohen's tentative rule of thumb), we can compute the numbers needed for change as follows:
+
+```{r}
+
+nnt(cer=.401, mean=7.3164, sd=3, d = .5);
+
+```
+
 
 ## Examples: tutorial
 
