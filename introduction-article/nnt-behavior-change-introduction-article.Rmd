@@ -87,6 +87,10 @@ ggsave(file.path(outputPath, "figure 1 - cer, d & nnc.png"),
        height = 8,
        type='cairo-png');
 
+ggsave(file.path(outputPath, "figure 1 - cer, d & nnc.pdf"), 
+       width = 14,
+       height = 8);
+
 ```
 
 ## The association between control event rate (base rate) and NNC for different values of Cohen's d
@@ -111,6 +115,10 @@ ggsave(file.path(outputPath, "figure 2 - d, cer & nnc.png"),
        height = 8,
        type='cairo-png');
 
+ggsave(file.path(outputPath, "figure 2 - d, cer & nnc.pdf"), 
+       width = 14,
+       height = 8);
+
 ```
 
 ## Illustrations of the CER and EER
@@ -133,6 +141,11 @@ ggsave(file.path(outputPath, "figure 4 - cer illustrations.png"),
        height = 5,
        type='cairo-png');
 
+ggsave(file.path(outputPath, "figure 4 - cer illustrations.pdf"),
+       plot=Figure4,
+       width = 15,
+       height = 5);
+
 ```
 
 ## Full walkthrough of example 2: alcohol
@@ -149,6 +162,15 @@ nnt(cer=.401, mean=7.3164, sd=3, d = .5);
 
 ```
 
+## Contrasting the measures
+
+A reviewer requested that we provide a table that shows the NNT compared to other statistics.
+
+```{r}
+
+
+
+```
 
 ## Examples: tutorial
 
@@ -165,7 +187,10 @@ First, a dataset will be simulated, consisting of a behavior measure collected f
 
   ### Simulate data for a continuous behavior measure for
   ### the control condition (i.e. the control event rate)
-  exampleData <- data.frame(behavior = round(rnorm(1000, mean=90, sd=30)));
+  exampleData <-
+    data.frame(behavior = round(rnorm(1000,
+                                      mean=90,
+                                      sd=30)));
 
 ```
 
@@ -183,18 +208,24 @@ In this situation, we have a continuous behavior estimate, and we need to establ
   require('behaviorchange');
 
   ### Dichotomize the behavior measure
-  exampleData$behavior_dichotomous <- as.numeric(exampleData$behavior >= 135);
+  exampleData$behavior_dichotomous <-
+    as.numeric(exampleData$behavior >= 135);
 
   ### Convert to a factor with meaningful level labels
-  exampleData$behavior_dichotomous <- factor(exampleData$behavior_dichotomous,
-                                             levels=0:1,
-                                             labels=c("No Event", "Event"));
+  exampleData$behavior_dichotomous <-
+    factor(exampleData$behavior_dichotomous,
+           levels=0:1,
+           labels=c("No Event",
+                    "Event"));
 
   ### Show frequencies
   table(exampleData$behavior_dichotomous);
   
   ### Compute numbers needed for change
-  nnt(cer=.071, mean = 90, sd = 30, d = .5);
+  behaviorchange::nnt(cer=.071,
+                      mean = 90,
+                      sd = 30,
+                      d = .5);
 
 ```
 
@@ -208,7 +239,10 @@ The variable we created in the previous example is an example of the variable th
   table(exampleData$behavior_dichotomous);
   
   ### Compute numbers needed for change
-  nnt(cer=.071, mean = 90, sd = 30, d = .5);
+  behaviorchange::nnt(cer=.071,
+                      mean = 90,
+                      sd = 30,
+                      d = .5);
 
 ```
 
@@ -221,10 +255,10 @@ We will again use the same data, with a mean of 90 minutes, a standard deviation
 ```{r echo=TRUE}
 
   ### Compute numbers needed to treat
-  nnt(threshold=135,
-      mean = 90,
-      sd = 30,
-      d = .5);
+  behaviorchange::nnt(threshold=135,
+                      mean = 90,
+                      sd = 30,
+                      d = .5);
 
 ```
 
@@ -235,11 +269,11 @@ Choosing a threshold is normally based on substantive, context-specific informat
 ```{r echo=TRUE}
 
   ### Compute numbers needed to treat
-  nnt(threshold=135,
-      mean = 90,
-      sd = 30,
-      d = .5,
-      thresholdSensitivity=c(115, 125, 145, 155));
+  behaviorchange::nnt(threshold=135,
+                      mean = 90,
+                      sd = 30,
+                      d = .5,
+                      thresholdSensitivity=c(115, 125, 145, 155));
 
 ```
 
@@ -250,12 +284,12 @@ The outcome measure in behavior change research is often imperfectly reliable (i
 ```{r echo=TRUE}
 
   ### Compute numbers needed to treat
-  nnt(threshold=135,
-      mean = 90,
-      sd = 30,
-      d = .5,
-      dReliability = .7,
-      thresholdSensitivity=c(115, 125, 145, 155));
+  behaviorchange::nnt(threshold=135,
+                      mean = 90,
+                      sd = 30,
+                      d = .5,
+                      dReliability = .7,
+                      thresholdSensitivity=c(115, 125, 145, 155));
 
 ```
 
