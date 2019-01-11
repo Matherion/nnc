@@ -37,8 +37,8 @@ knitr::opts_chunk$set(echo = TRUE);
 ######################################################################
 
 ### Set other directories for importing data etc
-workingPath <- here::here();
-outputPath <- here::here();
+workingPath <- here::here("introduction-article");
+outputPath <- here::here("introduction-article");
 
 ######################################################################
 ### Set parameters
