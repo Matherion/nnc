@@ -51,6 +51,8 @@ cer <- c(.1, .2, .3, .4, .5, .6, .7, .8, .9);
 cer.from <- .00001;
 cer.to <- .99;
 
+exerciseExampleMean <- 100;
+
 d <- seq(from=d.from, to = d.to, by=.01);
 
 cer.continuous <- seq(cer.from, cer.to, by = .001);
@@ -78,16 +80,16 @@ ggplot(df1, aes(x=d, y=nnc, group=cer, color=cer)) +
   scale_color_brewer(type='qual', palette=3) +
   scale_x_continuous(breaks=c(0, .2, .4, .6, .8, 1, 1.2, 1.4)) +
   coord_cartesian(xlim=c(0.066, 1.4), ylim=c(2.3, 50)) +
-  xlab("Cohen's d") + ylab("Numbers Needed for Change") +
+  xlab("Cohen's d") + ylab("Numbers Needed to Treat") +
   guides( color = guide_legend(title = "CER")) +
   theme_bw(base_size = 22);
 
-ggsave(file.path(outputPath, "figure 1 - cer, d & nnc.png"), 
+ggsave(file.path(outputPath, "figure 2 - cer, d & nnc.png"), 
        width = 14,
        height = 8,
        type='cairo-png');
 
-ggsave(file.path(outputPath, "figure 1 - cer, d & nnc.pdf"), 
+ggsave(file.path(outputPath, "figure 2 - cer, d & nnc.pdf"), 
        width = 14,
        height = 8);
 
@@ -106,16 +108,16 @@ ggplot(df2, aes(x=cer, y=nnc, group=d, color=d)) +
   scale_color_brewer(type='qual', palette=3, direction=-1) +
   scale_x_continuous(breaks=c(0, .2, .4, .6, .8, 1, 1.2, 1.4)) +
   coord_cartesian(xlim=c(0, 1), ylim=c(2.3, 50)) +
-  xlab("Control Event Rate") + ylab("Numbers Needed for Change") +
+  xlab("Control Event Rate") + ylab("Numbers Needed to Treat") +
   guides(color = guide_legend(title = "d")) +
   theme_bw(base_size = 22);
 
-ggsave(file.path(outputPath, "figure 2 - d, cer & nnc.png"), 
+ggsave(file.path(outputPath, "figure 3 - d, cer & nnc.png"), 
        width = 14,
        height = 8,
        type='cairo-png');
 
-ggsave(file.path(outputPath, "figure 2 - d, cer & nnc.pdf"), 
+ggsave(file.path(outputPath, "figure 3 - d, cer & nnc.pdf"), 
        width = 14,
        height = 8);
 
@@ -129,9 +131,24 @@ ggsave(file.path(outputPath, "figure 2 - d, cer & nnc.pdf"),
 # plot2 <- ggNNC(erDataSeq(er=.5, mean=3.5, sd=1), d=.5);
 # plot3 <- ggNNC(erDataSeq(er=.8, mean=3.5, sd=1), d=.5);
 
-plot1 <- ggNNC(erDataSeq(threshold=125, mean=90, sd=30), d=.5);
-plot2 <- ggNNC(erDataSeq(threshold=135, mean=90, sd=30), d=.5);
-plot3 <- ggNNC(erDataSeq(threshold=145, mean=90, sd=30), d=.5);
+plot1 <-
+  behaviorchange::ggNNC(behaviorchange::erDataSeq(threshold=135,
+                                                  mean=exerciseExampleMean,
+                                                  sd=30),
+                        d=.5,
+                        plotTitle=c("Numbers Needed to Treat: ", ""));
+plot2 <-
+  behaviorchange::ggNNC(behaviorchange::erDataSeq(threshold=150,
+                                                  mean=exerciseExampleMean,
+                                                  sd=30),
+                        d=.5,
+                        plotTitle=c("Numbers Needed to Treat: ", ""));
+plot3 <-
+  behaviorchange::ggNNC(behaviorchange::erDataSeq(threshold=165,
+                                                  mean=exerciseExampleMean,
+                                                  sd=30),
+                        d=.5,
+                        plotTitle=c("Numbers Needed to Treat: ", ""));
 
 Figure4 <- grid.arrange(plot1, plot2, plot3, ncol=3);
 
@@ -166,21 +183,7 @@ nnt(cer=.401, mean=7.3164, sd=3, d = .5);
 
 A reviewer requested that we provide a table that shows the NNT compared to other statistics.
 
-```{r}
-
-
-
-```
-
-## Examples: tutorial
-
-To illustrate the procedures to estimate the NNC, we will show examples for three hypothetical situations, supplement the examples with R code that can easily be adjusted. The three situations are the three situations described above: one where a researcher has a continuous behavior measure for the control condition, one where instead, a dichotomous variable is available, and one where only a mean and standard deviation are available.
-
-Like in the primary example in the paper, the behavior data concerns exercise data, specifically, number of minutes participants exercicse per week. In all situations, 135 minutes is considered the threshold value (i.e. participants are considered participants with an 'event' if they exercise at least 135 minutes. The mean number of minutes participants exercise is 90, with a standard deviation of 30. The hypothetical intervention has an effect of Cohen's *d* = 0.5.
-
-First, a dataset will be simulated, consisting of a behavior measure collected for 1000 participants. 
-
-```{r echo=TRUE}
+```{r, results="asis"}
 
   ### Set a seed to enable replication of the data generation
   set.seed(20170402);
@@ -188,108 +191,369 @@ First, a dataset will be simulated, consisting of a behavior measure collected f
   ### Simulate data for a continuous behavior measure for
   ### the control condition (i.e. the control event rate)
   exampleData <-
-    data.frame(behavior = round(rnorm(1000,
-                                      mean=90,
-                                      sd=30)));
+    data.frame(behavior_control = round(rnorm(1000,
+                                              mean=exerciseExampleMean,
+                                              sd=30)));
 
-```
-
-### Example 1: Continuous estimate
-
-In this situation, we have a continuous behavior estimate, and we need to establish the CER. This means we first have to dichotomize this continuous measure using the threshold (135 minutes). We can then establish the event rate and use this to compute the NNC.
-
-```{r echo=TRUE}
-
-  ### Install the behaviorchange package if necessary (this is
-  ### commented out because it's usually not necessary)
-  # install.packages('behaviorchange');
-
-  ### Load the behaviorchange package
-  require('behaviorchange');
-
-  ### Dichotomize the behavior measure
-  exampleData$behavior_dichotomous <-
-    as.numeric(exampleData$behavior >= 135);
-
-  ### Convert to a factor with meaningful level labels
-  exampleData$behavior_dichotomous <-
-    factor(exampleData$behavior_dichotomous,
-           levels=0:1,
-           labels=c("No Event",
-                    "Event"));
-
-  ### Show frequencies
-  table(exampleData$behavior_dichotomous);
+  ### Add experimental condition (intervention effects)
+  cohensDs <-
+    c(small = .2,
+      medium = .5,
+      large = .8);
   
-  ### Compute numbers needed for change
-  behaviorchange::nnt(cer=.071,
-                      mean = 90,
-                      sd = 30,
-                      d = .5);
+  for (i in seq_along(cohensDs)) {
+    exampleData[, paste0('behavior_experimental_', names(cohensDs)[i])] <-
+      round(rnorm(1000,
+                  mean=exerciseExampleMean + cohensDs[i]*30,
+                  sd=30));
+  }
 
-```
+  ### Dichotomize using different thresholds (i.e. basic CERs, and EERs)
+  thresholds <-
+    seq(50, 150, by=50);
 
-### Example 2: Binary estimate
+  for (i in names(exampleData)) {
+    for (t in thresholds) {
+      exampleData[, paste0(i, '_dichotomous_', t)] <-
+        as.numeric(exampleData[, i] >= t);
+      exampleData[, paste0(i, '_dichotomous_', t)] <-
+        factor(exampleData[, paste0(i, '_dichotomous_', t)],
+               levels=0:1,
+               labels=c("No Event",
+                        "Event"));
+    }
+  }
 
-The variable we created in the previous example is an example of the variable that would be available to researchers who measured behavior using a dichotomous variable. Therefore, we can just repeat the last two steps: obtain the frequencies and show the NNC.
-
-```{r echo=TRUE}
-
-  ### Show the frequencies.
-  table(exampleData$behavior_dichotomous);
+  ERs <- colSums(exampleData[, grep('dichotomous', names(exampleData))] =='Event') /
+    nrow(exampleData);
   
-  ### Compute numbers needed for change
-  behaviorchange::nnt(cer=.071,
-                      mean = 90,
-                      sd = 30,
-                      d = .5);
+  vdA <- function(control,
+                  experimental) {
+    n1 <- length(control);
+    n2 <- length(experimental);
+    W <- wilcox.test(experimental, control)$statistic;
+    U <- (n1 * n2) - W;
+    return(setNames(((n1 * n2) - U) /
+                    (n1 * n2),
+                    'A'));
+  }
+  
+  comparisonTable <-
+    expand.grid(cohensDs, thresholds);
+  names(comparisonTable) <- c('d', 'Threshold');
+  comparisonTable$CER <-
+    rep(ERs[paste0('behavior_control_dichotomous_', thresholds)], each=3);
+  comparisonTable$EER <-
+    rep(ERs[paste0('behavior_experimental_',
+                   apply(expand.grid(names(cohensDs),
+                                     trimws(thresholds)),
+                         1,
+                         paste,
+                         collapse="_dichotomous_"))]);
+  for (i in 1:nrow(comparisonTable)) {
+    experimentalVarName <-
+      paste0('behavior_experimental_', names(cohensDs)[which(cohensDs==comparisonTable[i, 'd'])]);
+    comparisonTable[i, 'U3'] <-
+      compute.es::des(d = comparisonTable[i, 'd'],
+                      n.1 = nrow(exampleData),
+                      n.2 = nrow(exampleData),
+                      verbose=FALSE)$U3.d;
+    comparisonTable[i, 'CLES'] <-
+      compute.es::des(d = comparisonTable[i, 'd'],
+                      n.1 = nrow(exampleData),
+                      n.2 = nrow(exampleData),
+                      verbose=FALSE)$cl.d;
+    comparisonTable[i, 'A'] <-
+      vdA(control = exampleData$behavior_control,
+          experimental = exampleData[, experimentalVarName]);
+    comparisonTable[i, 'NNT'] <-
+      behaviorchange::nnt(d = comparisonTable[i, 'd'],
+                          cer = comparisonTable[i, 'CER']);
+  }
+
+  for (d in cohensDs) {
+    cat0("\n\nTable comparing effect indicators for d = ", d,
+        " (", round(mean(exampleData$behavior_control), 2), " minutes in the control group versus ",
+        round(mean(exampleData[, paste0("behavior_experimental_",
+                                        names(cohensDs)[which(cohensDs==d)])]), 2),
+        " minutes in the experimental group)\n\n");
+    print(knitr::kable(comparisonTable[comparisonTable$d==d, setdiff(names(comparisonTable), 'd')],
+                       row.names=FALSE));
+  }
+  
+  cat("\n\nFull table for comparing effect indicators\n\n");
+  print(knitr::kable(comparisonTable[order(comparisonTable$d), ],
+                     row.names=FALSE));
+  
+```
+
+## NNT tutorial: An illustrated guide to its use
+
+To illustrate the procedures to estimate the NNT, we will show examples for several hypothetical situations and supplement the examples with R code that can easily be adjusted. The NNT method will be illustrated for four different scenario’s. These scenario’s will work through the NNT procedure using exercising behavior as the outcome variable. Parts of the data used to illustrate the method are from the actual Dutch population, other data will be simulated (and thus hypothetical) for pedagogical purposes.
+
+### Scenario 1. CER population data available
+
+In this example we have evaluated the impact of an intervention designed to bolster exercising behavior in the general population. As discussed in a previous section, the U.S. Department of Health and Human Services (2018) recommends that adults should minimally exercise 2 hours and 30 minutes a week, or 30 minutes 5 days a week, consisting of moderate-intensity aerobic activity. The Dutch health council (Gezondheidsraad, 2017) similarly recommends a minimum of 150 minutes of exercise per week. These values provide researchers a concrete and meaningful *threshold* defining desirable events (at least 150 minutes of exercise per week).
+
+The first scenario is that there is existing population data already available – indeed, in this example, the Dutch institute of health (RIVM) has data publicly available. In the year 2017, it was estimated that roughly 47 % of the general Dutch population over 4 years of age meets the threshold for desirable levels (>150 minutes) of weekly physical exercise (CBS/RIVM, 2017). In this example, therefore, the CER = .47. Any intervention aimed at promoting physical activity in the Dutch *general population* could thus be tested against the backdrop of this CER. For instance, say researchers find that a specific campaign to increase minutes of exercise per week has an ES of Cohen’s d = 0.5. A simple calculation following Furukawa’s equation can be done in R – using the ‘behaviorchange’ package and NNT function: 
+
+```r
+### Install the behaviorchange package if necessary
+install.packages('behaviorchange');
+
+### Load the behaviorchange package
+require('behaviorchange');
+
+### Compute numbers needed to Treat
+behaviorchange::nnt(cer=.47, d = .5);
+```
+
+```{r tutorial-1, fig.cap="Figure 5. Results of the NNT calculation for Scenario 1", echo=FALSE}
+### Compute numbers needed to Treat
+behaviorchange::nnt(cer=.47, d = .5);
+```
+
+```{r tutorial-1-save-figure, fig.cap="Figure 5. Results of the NNT calculation for Scenario 1", echo=FALSE}
+ggplot2::ggsave(file.path(outputPath, "figure 5 - tutorial 1.png"), 
+                width = 10,
+                height = 5,
+                type='cairo-png');
+ggplot2::ggsave(file.path(outputPath, "figure 5 - tutorial 1.pdf"), 
+                width = 10,
+                height = 5);
+```
+
+These few lines of code will results in the following values: NNT = 6, corresponding CER=.47 EER = .66 and SRD = .19. The NNT of 6 indicates that an intervention with an effectiveness of Cohen’s d = 0.5 could be expected to push undesirable behaviour towards desired levels of exercise in 1 out of every 6 exposed to the intervention. This can be expected to result in an overall change from 47 % (CER) to 66 % (EER) desirable exercise behaviour in the population. Note that the current situation regarding exercise levels in the Netherlands is – from the perspective of intervention impact – close to the optimal level of CER=.50. When the population CER deviates further from .50, the impact of an intervention with given d will result in larger NNT values.
+
+### Scenario 2: Using sample data to estimate the CER
+
+In Scenario 1, we have used a practical threshold and corresponding CER from actual population data. It could, however, be the case that researchers managed to set a practical threshold (> 150 minutes per week exercise) but have no access to population data on the CER. For instance, an intervention could be specifically designed to promote exercise in an above-average (say 26-30) BMI population instead of the general population. In such a case, the CER may need to be estimated in the study itself. Using simulated data, scenario 2, 3 and 4 will illustrate various methods to estimate the CER when population data are not available
+
+A straightforward method to estimate the CER would be to inquire at baseline – or in a control condition – about minutes spent exercising. Depending on a researcher’s preference (footnote), this could be assessed dichotomously (e.g. do you currently exercise > 150 minutes per week?), or by a continuous measure (e.g. how many minutes per week do you currently engage in exercise?) – this variable could then be dichotomized using the preset threshold. In this scenario we assume that a continuous estimate of minutes spent exercising per week was used by the researchers. As in the primary example, the behavior data concerns exercise data, specifically, the number of minutes that above-average BMI (26-30) individuals exercise per week. Participants are considered participants with a desirable ‘event’ if they exercise at least 150 minutes per week. Further assume that the mean number of minutes above-average BMI participants (hypothetically) exercise is 100, with a standard deviation of 30. The hypothetical intervention again has an effect of Cohen’s d = 0.5 – the same ES magnitude we used in the general population intervention.
+
+First, a dataset will be simulated, consisting of a exercising measurement collected for 1000 participants.
+
+```{r tutorial-2}
+### Set a seed to enable replication of the data generation
+set.seed(20170402);
+
+### Simulate data for a continuous behavior measure for
+### the control condition (i.e. the control event rate)
+exampleData <- data.frame(behavior = round(rnorm(1000, mean=100, sd=30)));
+```
+
+In this situation, we have a continuous behavior measurement, and we need to establish the CER. This means we first have to dichotomize this continuous measure using the threshold (= > 150 minutes). We can then establish the event rate and use this to compute the NNT. 
+
+```{r tutorial-3, fig.cap="Figure 6. Results of the NNT calculation for Scenario 2"}
+### Dichotomize the behavior measure using the preset threshold
+exampleData$behavior_dichotomous <- as.numeric(exampleData$behavior >= 150);
+
+### Convert to a factor with meaningful level labels
+exampleData$behavior_dichotomous <- factor(exampleData$behavior_dichotomous,
+                                           levels=0:1,
+                                           labels=c("No Event", "Event"));
+
+### Show frequencies using the'freq' function from the 
+### userfriendlyscience package to estimate the CER. 
+userfriendlyscience::freq(exampleData$behavior_dichotomous);
+
+### The proportion of cases with an event is the CER estimate here,
+### in this case CER = .048.
+
+### Compute the numbers needed to treat as follows:
+behaviorchange::nnt(cer=.048, mean = 100, sd = 30, d = .5);
+
+### Note that specification of mean and sd are optional: it provides a meaningful ### x-axis to the visualization.
+```
+
+```{r tutorial-3-save-figure, fig.cap="Figure 6. Results of the NNT calculation for Scenario 1", echo=FALSE}
+ggplot2::ggsave(file.path(outputPath, "figure 6 - tutorial 2.png"), 
+                width = 10,
+                height = 5,
+                type='cairo-png');
+ggplot2::ggsave(file.path(outputPath, "figure 6 - tutorial 2.pdf"), 
+                width = 10,
+                height = 5);
+```
+
+Note the difference with our estimate of the NNT in Scenario 1. Although the intervention has the same standardized ES (Cohen’s d = .5) the population impact is different for our current target population consisting of above-average BMI individuals. This is because the (hypothetical) CER has changed relative to the general population – here, fewer people are distributed around the threshold to begin with. In this population, we need to expose more people to our intervention in order to push one person above the threshold of 150 minutes exercise per week. The variable impact of an intervention with an ES of d = .5 on different populations highlights the added value of computing the NNT.
+
+As discussed in previous sections, choosing a threshold is normally based on substantive, context-specific information (e.g. minimum number of minutes one should exercise for health benefits; maximum grams of alcohol one should consume to reduce harms; maximum kilocalories to ingest in a given period). However, guidance from practice may be minimal or uncertain. Therefore, it may be useful to conduct a sensitivity analysis to gauge the effects of specifying different threshold definitions. This is possible with the thresholdSensitivity argument of the ‘nnt’ function:
+
+```{r tutorial-4}
+### Compute numbers needed to treat with different thresholds
+nnt(threshold=150,
+    mean = 100,
+    sd = 30,
+    d = .5,
+    thresholdSensitivity=c(125, 145, 155, 165));
+```
+
+In addition to providing an estimate of the NNT and a visualization, including the ‘thresholdSensitivity’ function will provide a table that provides CER, EER, and NNT estimates for each specified threshold value. This allows researchers to gauge how different threshold definitions influence the NNT estimate. 
+
+### Scenario 3: Using a binary estimate of the CER
+
+Another possibility of establishing a CER (given a certain threshold definition) is to include a binary measurement in the pre-measurement / baseline condition rather than a continuous measure. For example, in the exercise example, this could be assessed by asking ‘do you currently engage in more than 150 minutes of exercise per week?’. The availability of a binary variable makes computation relatively straightforward, since it is not necessary to dichotomize a variable on the threshold – rather the variable itself is assessed using the threshold definition. However, a clear downside of including a binary pre-measurement is that for other analytical purposes, continuous variables are usually preferred (e.g., Cohen, 1983; DeCoster et al., 2009). The binary variable we created in Scenario 2 is a variable that would be available to researchers including a binary CER measurement in a study. Were such a variable available, it is possible to directly request frequencies and inspect the proportion of cases in the yes-category to estimate CER. Accordingly, this value can be entered in the NNT equation by first estimating the proportion. 
+
+```{r tutorial-5}
+### Show the frequencies
+userfriendlyscience::freq(exampleData$behavior_dichotomous);
+
+### Compute numbers needed to treat
+behaviorchange::nnt(cer=.048, mean = 100, sd = 30, d = .5);
 
 ```
 
-### Example 3: Parametric estimate
+The results are identical, of course, to those in Scenario 2. 
 
-This is a different example: here, a researcher has no primary data about the control event rate. Instead, only information about the distribution is available: a mean and a standard deviation. By assuming that the distribution is normal, it becomes possible to estimate the percentage of the distribution that exceeds the threshold.
+### Scenario 4: Using summary data (if no raw data are available)
 
-We will again use the same data, with a mean of 90 minutes, a standard deviation of 30 minutes, a threshold of 135 minutes, and an effect size estimate of Cohen's *d* = 0.5. In this situation, however, these numbers can just be directly provided to the `nnc` function.
+This is a different example: here, a researcher has no primary data about the control event rate. Instead, only information about the distribution is available: a mean and a standard deviation. This scenario occurs, for example, when a researcher wants to estimate the NNT for a study conducted by others. Making appropriate distributional assumptions (e.g. assuming a normal distribution) then enables estimating the percentage of the distribution that exceeds the threshold.
 
-```{r echo=TRUE}
+We will again use the above-average BMI data, assuming a mean of 100 minutes, a standard deviation of 30 minutes, a threshold of 150 minutes per week, and an ES estimate of Cohen’s d = 0.5 for our intervention to promote exercising. When assuming normally distributed data, however, these numbers can just be directly provided to the NNT function.
 
-  ### Compute numbers needed to treat
-  behaviorchange::nnt(threshold=135,
-                      mean = 90,
-                      sd = 30,
-                      d = .5);
-
+```{r tutorial-6, fig.cap="Figure 7. Results of the NNT calculation for Scenario 4."}
+### Compute numbers needed to treat
+behaviorchange::nnt(threshold=150, mean = 100, sd = 30, d = .5);
 ```
 
-### Example 4: Sensitivity analysis
-
-Choosing a threshold is normally based on substantive, context-specific information (e.g. minimum number of minutes one should exercise for health benefits; maximum grams of alcohol one should consume to reduce harms; maximum kilocalories to ingest in e given period). However, guidance from practice may be minimal or uncertain. Therefore, it is useful to conduct a sensitivity analysis to gauge the effects of specifying different thresholds. this is possible with the `thresholdSensitivity` argument:
-
-```{r echo=TRUE}
-
-  ### Compute numbers needed to treat
-  behaviorchange::nnt(threshold=135,
-                      mean = 90,
-                      sd = 30,
-                      d = .5,
-                      thresholdSensitivity=c(115, 125, 145, 155));
-
+```{r tutorial-6-save-figure, fig.cap="Figure 7. Results of the NNT calculation for Scenario 4", echo=FALSE}
+ggplot2::ggsave(file.path(outputPath, "figure 7 - tutorial 3.png"), 
+                width = 10,
+                height = 5,
+                type='cairo-png');
+ggplot2::ggsave(file.path(outputPath, "figure 7 - tutorial 3.pdf"), 
+                width = 10,
+                height = 5);
 ```
 
-### Example 5: Correct Cohen's *d* for unreliability
+In this situation, the CER is computed at 4.78%, and the EER at 12.17%, resulting in an estimated NNT=14 (see Figure 7). 
 
-The outcome measure in behavior change research is often imperfectly reliable (i.e. with a reliability lower than 1). Cohen's *d* can be corrected for this, and this can be achieved by specifying the reliability in argument `dReliability`:
 
-```{r echo=TRUE}
 
-  ### Compute numbers needed to treat
-  behaviorchange::nnt(threshold=135,
-                      mean = 90,
-                      sd = 30,
-                      d = .5,
-                      dReliability = .7,
-                      thresholdSensitivity=c(115, 125, 145, 155));
 
-```
+
+
+
+<!-- ## Examples: tutorial -->
+
+<!-- To illustrate the procedures to estimate the NNC, we will show examples for three hypothetical situations, supplement the examples with R code that can easily be adjusted. The three situations are the three situations described above: one where a researcher has a continuous behavior measure for the control condition, one where instead, a dichotomous variable is available, and one where only a mean and standard deviation are available. -->
+
+<!-- Like in the primary example in the paper, the behavior data concerns exercise data, specifically, number of minutes participants exercicse per week. In all situations, 150 minutes is considered the threshold value (i.e. participants are considered participants with an 'event' if they exercise at least 150 minutes. The mean number of minutes participants exercise is `r exerciseExampleMean`, with a standard deviation of 30. The hypothetical intervention has an effect of Cohen's *d* = 0.5. -->
+
+<!-- First, a dataset will be simulated, consisting of a behavior measure collected for 1000 participants.  -->
+
+<!-- ```{r echo=TRUE} -->
+
+<!--   ### Set a seed to enable replication of the data generation -->
+<!--   set.seed(20170402); -->
+
+<!--   ### Simulate data for a continuous behavior measure for -->
+<!--   ### the control condition (i.e. the control event rate) -->
+<!--   exampleData <- -->
+<!--     data.frame(behavior = round(rnorm(1000, -->
+<!--                                       mean=exerciseExampleMean, -->
+<!--                                       sd=30))); -->
+
+
+<!-- ``` -->
+
+<!-- ### Example 1: Continuous estimate -->
+
+<!-- In this situation, we have a continuous behavior estimate, and we need to establish the CER. This means we first have to dichotomize this continuous measure using the threshold (150 minutes). We can then establish the event rate and use this to compute the NNC. -->
+
+<!-- ```{r echo=TRUE} -->
+
+<!--   ### Install the behaviorchange package if necessary (this is -->
+<!--   ### commented out because it's usually not necessary) -->
+<!--   # install.packages('behaviorchange'); -->
+
+<!--   ### Load the behaviorchange package -->
+<!--   require('behaviorchange'); -->
+
+<!--   ### Dichotomize the behavior measure -->
+<!--   exampleData$behavior_dichotomous <- -->
+<!--     as.numeric(exampleData$behavior >= 150); -->
+
+<!--   ### Convert to a factor with meaningful level labels -->
+<!--   exampleData$behavior_dichotomous <- -->
+<!--     factor(exampleData$behavior_dichotomous, -->
+<!--            levels=0:1, -->
+<!--            labels=c("No Event", -->
+<!--                     "Event")); -->
+
+<!--   ### Show frequencies -->
+<!--   table(exampleData$behavior_dichotomous); -->
+
+<!--   ### Compute numbers needed for change -->
+<!--   behaviorchange::nnt(cer=.071, -->
+<!--                       mean = exerciseExampleMean, -->
+<!--                       sd = 30, -->
+<!--                       d = .5); -->
+
+<!-- ``` -->
+
+<!-- ### Example 2: Binary estimate -->
+
+<!-- The variable we created in the previous example is an example of the variable that would be available to researchers who measured behavior using a dichotomous variable. Therefore, we can just repeat the last two steps: obtain the frequencies and show the NNC. -->
+
+<!-- ```{r echo=TRUE} -->
+
+<!--   ### Show the frequencies. -->
+<!--   table(exampleData$behavior_dichotomous); -->
+
+<!--   ### Compute numbers needed for change -->
+<!--   behaviorchange::nnt(cer=.071, -->
+<!--                       mean = exerciseExampleMean, -->
+<!--                       sd = 30, -->
+<!--                       d = .5); -->
+
+<!-- ``` -->
+
+<!-- ### Example 3: Parametric estimate -->
+
+<!-- This is a different example: here, a researcher has no primary data about the control event rate. Instead, only information about the distribution is available: a mean and a standard deviation. By assuming that the distribution is normal, it becomes possible to estimate the percentage of the distribution that exceeds the threshold. -->
+
+<!-- We will again use the same data, with a mean of `r exerciseExampleMean` minutes, a standard deviation of 30 minutes, a threshold of 150 minutes, and an effect size estimate of Cohen's *d* = 0.5. In this situation, however, these numbers can just be directly provided to the `nnc` function. -->
+
+<!-- ```{r echo=TRUE} -->
+
+<!--   ### Compute numbers needed to treat -->
+<!--   behaviorchange::nnt(threshold=150, -->
+<!--                       mean = exerciseExampleMean, -->
+<!--                       sd = 30, -->
+<!--                       d = .5); -->
+
+<!-- ``` -->
+
+<!-- ### Example 4: Sensitivity analysis -->
+
+<!-- Choosing a threshold is normally based on substantive, context-specific information (e.g. minimum number of minutes one should exercise for health benefits; maximum grams of alcohol one should consume to reduce harms; maximum kilocalories to ingest in e given period). However, guidance from practice may be minimal or uncertain. Therefore, it is useful to conduct a sensitivity analysis to gauge the effects of specifying different thresholds. this is possible with the `thresholdSensitivity` argument: -->
+
+<!-- ```{r echo=TRUE} -->
+
+<!--   ### Compute numbers needed to treat -->
+<!--   behaviorchange::nnt(threshold=150, -->
+<!--                       mean = exerciseExampleMean, -->
+<!--                       sd = 30, -->
+<!--                       d = .5, -->
+<!--                       thresholdSensitivity=c(115, 125, 145, 155)); -->
+
+<!-- ``` -->
+
+<!-- ### Example 5: Correct Cohen's *d* for unreliability -->
+
+<!-- The outcome measure in behavior change research is often imperfectly reliable (i.e. with a reliability lower than 1). Cohen's *d* can be corrected for this, and this can be achieved by specifying the reliability in argument `dReliability`: -->
+
+<!-- ```{r echo=TRUE} -->
+
+<!--   ### Compute numbers needed to treat -->
+<!--   behaviorchange::nnt(threshold=150, -->
+<!--                       mean = exerciseExampleMean, -->
+<!--                       sd = 30, -->
+<!--                       d = .5, -->
+<!--                       dReliability = .7, -->
+<!--                       thresholdSensitivity=c(115, 125, 145, 155)); -->
+
+<!-- ``` -->
 
